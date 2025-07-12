@@ -1,36 +1,58 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
+
+	"github.com/silvanasln/user-management/repository"
+	"github.com/silvanasln/user-management/service"
 )
+    
+  
+
 
 func main() {
-	var todolist []string
+    // رپوزیتوری و سرویس رو راه‌اندازی می‌کنیم
+    repo := repository.NewInMemoryUserRepository()
+    userService := service.NewUserService(repo)
 
-	todolist = append(todolist, "خرید کردن")
-	todolist = append(todolist, "کتاب خوندن")
-	todolist = append(todolist, "فیلم دیدن")
-	todolist = append(todolist, "پختن غذا")
+    // ایجاد کاربر
+    user, err := userService.CreateUser("name", "name@example.com")
+    if err != nil {
+        fmt.Println("خطا در ایجاد کاربر:", err)
+        return
+    }
+    fmt.Printf("کاربر ایجاد شد: %+v\n", user)
 
-	fmt.Println("کارهایی که امروز باید انجام بدم:")
-	for i, harkar := range todolist {
-		fmt.Println(i+1, ".", harkar)
-	}
+    // دریافت همه کاربران
+    users, err := userService.GetAllUsers()
+    if err != nil {
+        fmt.Println("خطا در دریافت کاربران:", err)
+        return
+    }
+    fmt.Println("همه کاربران:", users)
 
-	http.HandleFunc("/todos", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(todolist); err != nil {
-				http.Error(w, "خطا در تبدیل به JSON", http.StatusInternalServerError)
-				return
-			}
-		} else {
-			http.Error(w, "فقط متد GET پشتیبانی می‌شه", http.StatusMethodNotAllowed)
-		}
-	})
+    // به‌روزرسانی کاربر
+    updatedUser, err := userService.UpdateUser(user.ID, "new name", "new.new@example.com")
+    if err != nil {
+        fmt.Println("خطا در به‌روزرسانی:", err)
+        return
+    }
+    fmt.Printf("کاربر به‌روزرسانی شد: %+v\n", updatedUser)
 
-	fmt.Println("سرور در حال اجرا روی پورت 8080...")
-	http.ListenAndServe(":8080", nil)
+    // دریافت کاربر با ID
+    fetchedUser, err := userService.GetUserByID(user.ID)
+    if err != nil {
+        fmt.Println("خطا در دریافت کاربر:", err)
+        return
+    }
+    fmt.Printf("کاربر دریافت‌شده: %+v\n", fetchedUser)
+
+    // حذف کاربر
+    err = userService.DeleteUser(user.ID)
+    if err != nil {
+        fmt.Println("خطا در حذف کاربر:", err)
+        return
+    }
+    fmt.Println("کاربر حذف شد")
 }
+
